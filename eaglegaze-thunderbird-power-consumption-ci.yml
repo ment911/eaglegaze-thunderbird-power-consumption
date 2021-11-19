@@ -3,7 +3,7 @@
 # https://docs.microsoft.com/azure/devops/pipelines/languages/docker
 
 
-name : eaglegaze-thunderbird-ci
+name : eaglegaze-thunderbird-power-consumption-ci
 
 trigger:
 - main
@@ -13,7 +13,7 @@ resources:
 
 variables:
   tag: '$(Build.BuildId)'
-  ImageName: 'eaglegaze-thunderbird-lib'
+  ImageName: 'eaglegaze-thunderbird-power-consumption'
 
 
 stages:

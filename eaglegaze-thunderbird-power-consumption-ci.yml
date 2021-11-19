@@ -1,0 +1,54 @@
+# Docker
+# Build a Docker image
+# https://docs.microsoft.com/azure/devops/pipelines/languages/docker
+
+
+name : eaglegaze-thunderbird-ci
+
+trigger:
+- main
+
+resources:
+- repo: self
+
+variables:
+  tag: '$(Build.BuildId)'
+  ImageName: 'eaglegaze-thunderbird-lib'
+
+
+stages:
+- stage: Build
+  displayName: Build Docker image
+  jobs:
+  - job: Build
+    displayName: Build
+    pool:
+      vmImage: ubuntu-latest
+    steps:
+    - task: Docker@2
+      displayName: Build an image
+      inputs:
+        command: build
+        repository: $(ImageName)
+        dockerfile: '$(Build.SourcesDirectory)/Dockerfile'
+        tags: |
+          $(Build.BuildId)
+          latest    
+    - task: ECRPushImage@1
+      inputs:
+        awsCredentials: 'AWS-ForecastDemand-dev-terraform'
+        regionName: 'eu-central-1'
+        imageSource: 'imagename'
+        sourceImageName: '$(ImageName)'
+        sourceImageTag: $(Build.BuildId)
+        repositoryName: '$(ImageName)'
+        pushTag: '$(Build.BuildId)'
+    - task: ECRPushImage@1
+      inputs:
+        awsCredentials: 'AWS-ForecastDemand-dev-terraform'
+        regionName: 'eu-central-1'
+        imageSource: 'imagename'
+        sourceImageName: '$(ImageName)'
+        sourceImageTag: $(Build.BuildId)
+        repositoryName: '$(ImageName)'
+        pushTag: 'latest'

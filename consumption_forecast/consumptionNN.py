@@ -9,7 +9,7 @@ import pandas as pd
 import psycopg2
 import warnings
 from dotenv import load_dotenv, find_dotenv
-from eaglegaze_common.common_utils import insert_into_table, dublicated_hour
+from eaglegaze_common.common_utils import insert_into_table, dublicated_hour, reduce_memory_usage
 from getting_lockdown_data import LockdownEU
 
 warnings.filterwarnings("ignore")
@@ -44,6 +44,7 @@ class ConsumptionNN:
         cur.execute(f"SELECT date_time, value FROM bi.{ConsumptionNN.balance_table}"
                     f" WHERE country_code = '{self.country_code}' and id = 22 ORDER BY date_time")
         df_consumption = pd.DataFrame(cur.fetchall()).rename(columns={0: 'date_time', 1: 'consumption'})
+        df_consumption = reduce_memory_usage(df_consumption)
         df_consumption['consumption'] = df_consumption['consumption'].astype(float)
         df_consumption['consumption'] = df_consumption['consumption'].replace(0, np.nan)
         df_consumption = ThunderbirdUtils().check_missing_values(frame=df_consumption, target_column='consumption')
@@ -197,29 +198,36 @@ class ConsumptionNN:
                         f"WHERE mfc_scenario = 4 AND mfc_market_id = {m_id} "
                         f"AND mfc_commodity_id = 1 AND mfc_microservice_id = 30")
             backtest = pd.DataFrame(cur.fetchall())
-        backtest.columns = [d[0] for d in cur.description]
-        # Get forecast
-        if self.local_time:
-            cur.execute(f"SELECT mfc_datetime_local, mfc_val_3 FROM im.im_markets_forecast_calc "
-                        f"WHERE mfc_scenario = {scenario} AND mfc_market_id = {m_id} "
-                        f"AND mfc_commodity_id = 1 AND mfc_microservice_id = 30")
-            forecast = pd.DataFrame(cur.fetchall())
+        if len(backtest):
+            backtest.columns = [d[0] for d in cur.description]
+            # Get forecast
+            if self.local_time:
+                cur.execute(f"SELECT mfc_datetime_local, mfc_val_3 FROM im.im_markets_forecast_calc "
+                            f"WHERE mfc_scenario = {scenario} AND mfc_market_id = {m_id} "
+                            f"AND mfc_commodity_id = 1 AND mfc_microservice_id = 30")
+                forecast = pd.DataFrame(cur.fetchall())
+            else:
+                cur.execute(f"SELECT mfc_datetime_utc, mfc_val_3 FROM im.im_markets_forecast_calc "
+                            f"WHERE mfc_scenario = {scenario} AND mfc_market_id = {m_id} "
+                            f"AND mfc_commodity_id = 1 AND mfc_microservice_id = 30")
+                forecast = pd.DataFrame(cur.fetchall())
+            forecast.columns = [d[0] for d in cur.description]
+            forecast = forecast[forecast['mfc_datetime_local'] > backtest['mfc_datetime_local'].max()]
+            df = pd.concat([backtest, forecast])
+            df = reduce_memory_usage(df)
+            if self.local_time:
+                df = dublicated_hour(df=df, subset=['mfc_datetime_local'], date_time_column='mfc_datetime_local').rename(
+                    columns={'mfc_datetime_local': 'date_time',
+                             'mfc_val_3': 'prediction'}
+                )
+            else:
+                df = df.rename(columns={'mfc_datetime_utc': 'date_time', 'mfc_val_3': 'prediction'})
+            return df
         else:
-            cur.execute(f"SELECT mfc_datetime_utc, mfc_val_3 FROM im.im_markets_forecast_calc "
-                        f"WHERE mfc_scenario = {scenario} AND mfc_market_id = {m_id} "
-                        f"AND mfc_commodity_id = 1 AND mfc_microservice_id = 30")
-            forecast = pd.DataFrame(cur.fetchall())
-        forecast.columns = [d[0] for d in cur.description]
-        forecast = forecast[forecast['mfc_datetime_local'] > backtest['mfc_datetime_local'].max()]
-        df = pd.concat([backtest, forecast])
-        if self.local_time:
-            df = dublicated_hour(df=df, subset=['mfc_datetime_local'], date_time_column='mfc_datetime_local').rename(
-                columns={'mfc_datetime_local': 'date_time',
-                         'mfc_val_3': 'prediction'}
-            )
-        else:
-            df = df.rename(columns={'mfc_datetime_utc': 'date_time', 'mfc_val_3': 'prediction'})
-        return df
+            print(f"\n \n \n No backtest had been done yet for {self.country_code}, sin inclination values will be "
+                  f"inserted as a proxy!!!!!! \n \n \n")
+            return(f"\n \n \n No backtest had been done yet for {self.country_code}, sin inclination values will be "
+                  f"inserted as a proxy!!!!!! \n \n \n")
 
     def collect_data_for_2d_forecast(self):
 
@@ -252,8 +260,9 @@ class ConsumptionNN:
         df_consumption.dropna(thresh=df_consumption.shape[1] - 1, inplace=True)
         # df_consumption.dropna(thresh=6, inplace=True)
 
-        df_consumption = self.cdh_hdh(df_consumption)
-
+        cdh_hdh = self.cdh_hdh(two_days=True)
+        df_consumption = pd.merge(df_consumption, cdh_hdh, on='date_time').drop(
+            columns=['temperature_x']).rename(columns={'temperature_y': 'temperature'})
         # Adding dummise to df
         dummies = pd.get_dummies(df_consumption['date_time'].dt.hour, prefix='d')
         df = pd.concat([df_consumption, dummies], axis=1)
@@ -279,8 +288,12 @@ class ConsumptionNN:
         if self.country_code in ConsumptionForecast.no_solar_countries.value:
             df['prediction'] = df['sin'].fillna(0)
         else:
-            df = pd.merge(df, self.get_a_solar_rooftop_forecast(), on='date_time', how='outer').dropna(thresh=df.shape[1]-1)
-            df['prediction'] = df['prediction'].fillna(0)
+            rooftop = self.get_a_solar_rooftop_forecast()
+            if isinstance(rooftop, pd.DataFrame):
+                df = pd.merge(df, rooftop, on='date_time', how='outer').dropna(thresh=df.shape[1]-1)
+                df['prediction'] = df['prediction'].fillna(0)
+            elif isinstance(rooftop, str):
+                df['prediction'] = df['sin'].fillna(0)
         df.drop(columns=['sin', 'clouds'], inplace=True)
         df.dropna(thresh=df.shape[1] - 1, inplace=True)
 
@@ -332,7 +345,9 @@ class ConsumptionNN:
         df_consumption.fillna(np.nan, inplace=True)
         df_consumption.dropna(thresh=df_consumption.shape[1] - 1, inplace=True)
 
-        df_consumption = self.cdh_hdh(df_consumption)
+        cdh_hdh = self.cdh_hdh(weekahead=True)
+        df_consumption = pd.merge(df_consumption, cdh_hdh, on='date_time').drop(
+            columns=['temperature_x']).rename(columns={'temperature_y': 'temperature'})
 
         # Adding dummise to df
         dummies = pd.get_dummies(df_consumption['date_time'].dt.hour, prefix='d')
@@ -356,10 +371,21 @@ class ConsumptionNN:
             columns={'date_time_x': 'date_time'})
         df = df[~df['d_1'].isna()]
         df['sin'] = df['sin'].fillna(0)
-        #df = self.solar_predictor(df)
 
+        """PUT THE MFC HERE"""
+        if self.country_code in ConsumptionForecast.no_solar_countries.value:
+            df['prediction'] = df['sin'].fillna(0)
+        else:
+            rooftop = self.get_a_solar_rooftop_forecast()
+            if isinstance(rooftop, pd.DataFrame):
+                df = pd.merge(df, rooftop, on='date_time', how='outer').dropna(thresh=df.shape[1]-1)
+                df['prediction'] = df['prediction'].fillna(0)
+            elif isinstance(rooftop, str):
+                df['prediction'] = df['sin'].fillna(0)
+        df.drop(columns=['sin', 'clouds'], inplace=True)
         df.dropna(thresh=df.shape[1] - 1, inplace=True)
 
+        df.dropna(thresh=df.shape[1] - 1, inplace=True)
         df = self.lockdown_data(df)
 
         timestamp_s = df['date_time'].map(datetime.datetime.timestamp)
@@ -403,7 +429,10 @@ class ConsumptionNN:
         df_consumption.fillna(np.nan, inplace=True)
         df_consumption.dropna(thresh=df_consumption.shape[1] - 1, inplace=True)
 
-        df_consumption = self.cdh_hdh(df_consumption)
+        cdh_hdh = self.cdh_hdh(longterm=True)
+        df_consumption = pd.merge(df_consumption, cdh_hdh, on='date_time').drop(
+            columns=['temperature_x']).rename(columns={'temperature_y': 'temperature'})
+
         df_consumption = df_consumption.sort_values('date_time')
         # Adding dummise to df
         dummies = pd.get_dummies(df_consumption['date_time'].dt.hour, prefix='d')
@@ -415,7 +444,7 @@ class ConsumptionNN:
                       how='outer').drop(columns=['date_time_y', 'key_0']).rename(columns={'date_time_x': 'date_time'})
         df = df[~df['d_1'].isna()]
 
-        df = self.is_sunny_hour(df)
+        df = ThunderbirdUtils(country_code=self.country_code).is_sunny_hour(df)
 
         # Add sun inclination
         df = pd.merge(df, sun_inc, left_on=df['date_time'].dt.date.astype(str) + '_' + df['date_time'].dt.hour.astype(
@@ -426,15 +455,20 @@ class ConsumptionNN:
             columns={'date_time_x': 'date_time'})
         df = df[~df['d_1'].isna()]
 
-        """PUT HERE FROM INTERNAL MODELING"""
-        # if self.country_code in ConsumptionForecast.no_solar_countries.value:
-        #     df['prediction'] = df['sin'].fillna(0)
-        #     df.drop(columns=['sin', 'clouds'], inplace=True)
-        # else:
-        #     df = self.solar_predictor(df)
+        """PUT THE MFC HERE"""
+        if self.country_code in ConsumptionForecast.no_solar_countries.value:
+            df['prediction'] = df['sin'].fillna(0)
+        else:
+            rooftop = self.get_a_solar_rooftop_forecast()
+            if isinstance(rooftop, pd.DataFrame):
+                df = pd.merge(df, rooftop, on='date_time', how='outer').dropna(thresh=df.shape[1]-1)
+                df['prediction'] = df['prediction'].fillna(0)
+            elif isinstance(rooftop, str):
+                df['prediction'] = df['sin'].fillna(0)
+        df.drop(columns=['sin', 'clouds'], inplace=True)
+        df.dropna(thresh=df.shape[1] - 1, inplace=True)
 
         # Adding lockdaown data
-
         df = self.lockdown_data(df)
 
         df['Wx'] = df['wind_speed'] * np.cos(df['wind_deg'] * np.pi / 180)
@@ -456,7 +490,7 @@ class ConsumptionNN:
 
         df = self.get_avg_consumption(df)
         df['country_code'] = self.country_code
-        self.insert_into_table(df, ConsumptionNN.raw_data_longterm)
+        insert_into_table(df, 'prime', ConsumptionNN.raw_data_longterm)
 
     @staticmethod
     def find_t_bound(df, hour, is_working_day, root=3, verbose=False):
@@ -525,43 +559,49 @@ class ConsumptionNN:
 
         return dh, dh0
 
-    def cdh_hdh(self, df_consumption):
+    def cdh_hdh(self, two_days=False, weekahead=False, longterm=False):
 
         dh, dh0 = self.find_t_bound_adv()
-
+        if two_days:
+            df_weather, points = ThunderbirdUtils.Weather(country_code=self.country_code,
+                                                  local_time=self.local_time, weighted=True).weather_forecast()
+        elif weekahead:
+            df_weather, points = ThunderbirdUtils.Weather(country_code=self.country_code,
+                                                  local_time=self.local_time, weighted=True).weather_interpolation()
+        elif longterm:
+            df_weather, points = ThunderbirdUtils.Weather(country_code=self.country_code,
+                                                  local_time=self.local_time, weighted=True).extract_weather_trend_data()
+        weights = []
+        for point in points:
+            cur.execute(f"SELECT consumption_weight FROM bi.weatherpointsref WHERE point_name = '{point}'")
+            weights.append(cur.fetchall()[0][0])
+        df_weather = pd.DataFrame({'date_time': df_weather['date_time'],
+                                   'temperature': np.dot(df_weather.iloc[:, 1:].values, np.array(weights))})
+        df_calendar = ThunderbirdUtils(country_code=self.country_code).extract_calendar_data()
+        df = pd.merge(df_weather, df_calendar, left_on=df_weather['date_time'].dt.date, right_on='date').drop(
+            columns=['date']).reset_index(drop=True)
         for key, value in dh.items():
-            df_consumption.loc[(df_consumption['temperature'] < value - 1) & (df_consumption['working_day'] == 1)
-                               & (
-                                       df_consumption['date_time'].dt.hour == key), 'hdh'] = (df_consumption[
-                                                                                                  'temperature'] - (
-                                                                                                          value - 1)) \
-                                                                                             * -1
-            df_consumption.loc[
-                (df_consumption['temperature'] > value + 1) & (df_consumption['working_day'] == 1) & (
-                        df_consumption['date_time'].dt.hour == key), 'cdh'] = (
-                        df_consumption['temperature'] - (value + 1))
+            df.loc[(df['temperature'] < value - 1) & (df['working_day'] == 1) & (df['date_time'].dt.hour == key), 'hdh'] \
+                = (df['temperature'] - (value - 1)) * -1
+            df.loc[(df['temperature'] > value + 1) & (df['working_day'] == 1) & (df['date_time'].dt.hour == key), 'cdh'] \
+                = (df['temperature'] - (value + 1))
         for key, value in dh0.items():
-            df_consumption.loc[
-                (df_consumption['temperature'] < value - 1) & (df_consumption['working_day'] == 0) & (
-                        df_consumption['date_time'].dt.hour == key), 'hdh'] = (df_consumption['temperature'] - (
-                        value - 1)) \
-                                                                              * -1
-            df_consumption.loc[
-                (df_consumption['temperature'] > value + 1) & (df_consumption['working_day'] == 0) & (
-                        df_consumption['date_time'].dt.hour == key), 'cdh'] = (
-                        df_consumption['temperature'] - (value + 1))
+            df.loc[(df['temperature'] < value - 1) & (df['working_day'] == 0) & (df['date_time'].dt.hour == key), 'hdh'] \
+                = (df['temperature'] - (value - 1)) * -1
+            df.loc[(df['temperature'] > value + 1) & (df['working_day'] == 0) & (df['date_time'].dt.hour == key), 'cdh'] \
+                = (df['temperature'] - (value + 1))
 
-        df_consumption['cdh'] = df_consumption['cdh'].fillna(0)
-        df_consumption['hdh'] = df_consumption['hdh'].fillna(0)
-
-        return df_consumption
+        df['cdh'] = df['cdh'].fillna(0)
+        df['hdh'] = df['hdh'].fillna(0)
+        df.drop(columns=['day_week', 'working_day', 'holiday'], inplace=True)
+        return df
 
 
 if __name__ == '__main__':
     # ConsumptionNN().collect_data_for_longterm_forecast()
     # solar_prediction('HU').predict(solar_prediction('HU')._prepare_data(), 'value')
     # countries = ['SK', 'RO', 'PL', 'HU', 'CZ']
-    countries = ['SK']
+    countries = ['PL']
     for country in countries:
         #solarNN(country_code=country).gather_data_for_2d_forecast()
         ConsumptionNN(country_code=country).collect_data_for_2d_forecast()

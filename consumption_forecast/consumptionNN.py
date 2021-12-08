@@ -2,7 +2,7 @@ import ast
 import datetime
 import os
 
-from eaglegaze_common.thunderbird.thunderattr import *
+from eaglegaze_common.thunderbird.thunderattr import ConsumptionForecast
 from eaglegaze_common.thunderbird.thunder_utils import ThunderbirdUtils
 import numpy as np
 import pandas as pd
@@ -320,10 +320,10 @@ class ConsumptionNN:
         df['country_code'] = self.country_code
 
         try:
-            insert_into_table(df, 'prime', ConsumptionNN.raw_data)
+            insert_into_table(df, 'prime', ConsumptionForecast.TwoDaysAhead.raw_data)
         except psycopg2.ProgrammingError:
             df = resolve_psycopg2_programming_error(df)
-            insert_into_table(df, 'prime', ConsumptionNN.raw_data)
+            insert_into_table(df, 'prime', ConsumptionForecast.TwoDaysAhead.raw_data)
 
 
     def collect_data_for_weekahead_forecast(self):
@@ -388,7 +388,7 @@ class ConsumptionNN:
                 df['prediction'] = df['prediction'].fillna(0)
             elif isinstance(rooftop, str):
                 df['prediction'] = df['sin'].fillna(0)
-        df.drop(columns=['sin', 'clouds'], inplace=True)
+        df.drop(columns=['sin'], inplace=True)
         df.dropna(thresh=df.shape[1] - 1, inplace=True)
 
         df.dropna(thresh=df.shape[1] - 1, inplace=True)
@@ -408,10 +408,10 @@ class ConsumptionNN:
         df['country_code'] = self.country_code
 
         try:
-            insert_into_table(df, 'prime', ConsumptionNN.raw_data)
+            insert_into_table(df, 'prime', ConsumptionForecast.Weekahead.raw_data)
         except psycopg2.ProgrammingError:
             df = resolve_psycopg2_programming_error(df)
-            insert_into_table(df, 'prime', ConsumptionNN.raw_data)
+            insert_into_table(df, 'prime', ConsumptionForecast.Weekahead.raw_data)
 
     def collect_data_for_longterm_forecast(self):
 
@@ -501,10 +501,10 @@ class ConsumptionNN:
         df = self.get_avg_consumption(df)
         df['country_code'] = self.country_code
         try:
-            insert_into_table(df, 'prime', ConsumptionNN.raw_data)
+            insert_into_table(df, 'prime', ConsumptionForecast.Longterm.raw_data)
         except psycopg2.ProgrammingError:
             df = resolve_psycopg2_programming_error(df)
-            insert_into_table(df, 'prime', ConsumptionNN.raw_data)
+            insert_into_table(df, 'prime', ConsumptionForecast.Longterm.raw_data)
 
     @staticmethod
     def find_t_bound(df, hour, is_working_day, root=3, verbose=False):

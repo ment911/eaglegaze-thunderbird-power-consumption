@@ -9,7 +9,8 @@ import pandas as pd
 import psycopg2
 import warnings
 from dotenv import load_dotenv, find_dotenv
-from eaglegaze_common.common_utils import insert_into_table, dublicated_hour, reduce_memory_usage
+from eaglegaze_common.common_utils import insert_into_table, dublicated_hour, reduce_memory_usage, \
+    resolve_psycopg2_programming_error
 from getting_lockdown_data import LockdownEU
 
 warnings.filterwarnings("ignore")
@@ -299,8 +300,8 @@ class ConsumptionNN:
 
         df = self.lockdown_data(df)
 
-        df['Wx'] = df['wind_speed'] * np.cos(df['wind_deg'] * np.pi / 180)
-        df['Wy'] = df['wind_speed'] * np.sin(df['wind_deg'] * np.pi / 180)
+        df['Wx'] = df['wind_speed'].astype(float) * np.cos(df['wind_deg'].astype(float) * np.pi / 180)
+        df['Wy'] = df['wind_speed'].astype(float) * np.sin(df['wind_deg'].astype(float) * np.pi / 180)
         df.drop(columns=['wind_speed', 'wind_deg'], inplace=True)
 
         timestamp_s = df['date_time'].map(datetime.datetime.timestamp)
@@ -318,7 +319,12 @@ class ConsumptionNN:
 
         df['country_code'] = self.country_code
 
-        insert_into_table(df, 'prime', ConsumptionNN.raw_data)
+        try:
+            insert_into_table(df, 'prime', ConsumptionNN.raw_data)
+        except psycopg2.ProgrammingError:
+            df = resolve_psycopg2_programming_error(df)
+            insert_into_table(df, 'prime', ConsumptionNN.raw_data)
+
 
     def collect_data_for_weekahead_forecast(self):
 
@@ -401,7 +407,11 @@ class ConsumptionNN:
         df.dropna(thresh=df.shape[1] - 1, inplace=True)
         df['country_code'] = self.country_code
 
-        insert_into_table(df, 'prime', ConsumptionNN.raw_data_weekahead)
+        try:
+            insert_into_table(df, 'prime', ConsumptionNN.raw_data)
+        except psycopg2.ProgrammingError:
+            df = resolve_psycopg2_programming_error(df)
+            insert_into_table(df, 'prime', ConsumptionNN.raw_data)
 
     def collect_data_for_longterm_forecast(self):
 
@@ -471,8 +481,8 @@ class ConsumptionNN:
         # Adding lockdaown data
         df = self.lockdown_data(df)
 
-        df['Wx'] = df['wind_speed'] * np.cos(df['wind_deg'] * np.pi / 180)
-        df['Wy'] = df['wind_speed'] * np.sin(df['wind_deg'] * np.pi / 180)
+        df['Wx'] = df['wind_speed'].astype(float) * np.cos(df['wind_deg'].astype(float) * np.pi / 180)
+        df['Wy'] = df['wind_speed'].astype(float) * np.sin(df['wind_deg'].astype(float) * np.pi / 180)
         df.drop(columns=['wind_speed', 'wind_deg'], inplace=True)
 
         timestamp_s = df['date_time'].map(datetime.datetime.timestamp)
@@ -490,7 +500,11 @@ class ConsumptionNN:
 
         df = self.get_avg_consumption(df)
         df['country_code'] = self.country_code
-        insert_into_table(df, 'prime', ConsumptionNN.raw_data_longterm)
+        try:
+            insert_into_table(df, 'prime', ConsumptionNN.raw_data)
+        except psycopg2.ProgrammingError:
+            df = resolve_psycopg2_programming_error(df)
+            insert_into_table(df, 'prime', ConsumptionNN.raw_data)
 
     @staticmethod
     def find_t_bound(df, hour, is_working_day, root=3, verbose=False):

@@ -11,7 +11,9 @@ from eaglegaze_common.thunderbird.nn_train_test import ThunderbirdTrain
 from eaglegaze_common.thunderbird.scale_the_data import ThunderbirdScale
 from eaglegaze_common.thunderbird.thunderattr import ConsumptionForecast
 from consumptionNN import ConsumptionNN
-
+from psycopg2 import pool as psyco_pool
+from contextlib import contextmanager
+from multiprocessing import Pool
 
 load_dotenv(find_dotenv())
 os.environ['SCALER_PATH'] = os.path.dirname(os.path.abspath(__file__)) + '/scalers/'
@@ -20,7 +22,20 @@ MODEL_PATH = os.environ.get('MODEL_PATH')
 DB_PARAMS = ast.literal_eval(os.environ["DB_PARAMS"])
 con = psycopg2.connect(**DB_PARAMS)
 cur = con.cursor()
+dbpool = psyco_pool.ThreadedConnectionPool(**DB_PARAMS)
 
+@contextmanager
+def db_cursor():
+    conn = dbpool.getconn()
+    try:
+        with conn.cursor() as cur:
+            yield cur
+            conn.commit()
+    except:
+        conn.rollback()
+        raise
+    finally:
+        dbpool.putconn(conn)
 
 class Thunder:
 
@@ -133,10 +148,9 @@ class Thunder:
         else:
             return 'Forecast has been done'
 
-    def run(self):
-        if self.countries is None:
-            self.countries = ConsumptionForecast.all_countries.value
-        for country in self.countries:
+    def main(self, country):
+        print(country)
+        with db_cursor() as cur:
             cur.execute(f"SELECT id FROM bi.countries t WHERE iso_сode = '{country}'")
             id = cur.fetchall()[0][0]
             cur.execute(f"SELECT m_id FROM im.im_market WHERE m_commodity = 1 AND m_type = 1 AND m_sid1 = {id}")
@@ -156,6 +170,13 @@ class Thunder:
                 print('\n \n Backtest for consumption() generation has been done for {country}, time to forecast \n \n')
                 self.backtest = False
                 self.consumption(country=country, train=False)
+
+    def run(self):
+        if self.countries is None:
+            self.countries = ConsumptionForecast.all_countries.value
+        pool = Pool()   # Create a multiprocessing Pool
+        pool.map(self.main, self.countries)
+
 
 if __name__ == '__main__':
     Thunder(countries=['SK']).run()

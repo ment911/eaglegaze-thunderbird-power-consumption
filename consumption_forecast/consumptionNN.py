@@ -12,12 +12,32 @@ from dotenv import load_dotenv, find_dotenv
 from eaglegaze_common.common_utils import insert_into_table, dublicated_hour, reduce_memory_usage, \
     resolve_psycopg2_programming_error
 from getting_lockdown_data import LockdownEU
+from psycopg2 import pool as psyco_pool
+from contextlib import contextmanager
 
 warnings.filterwarnings("ignore")
 load_dotenv(find_dotenv())
 DB_PARAMS = ast.literal_eval(os.environ["DB_PARAMS"])
 con = psycopg2.connect(**DB_PARAMS)
-cur = con.cursor()
+# cur = con.cursor()
+dbpool = psyco_pool.ThreadedConnectionPool(1, 25, **DB_PARAMS)
+
+
+@contextmanager
+def db_cursor():
+    con = dbpool.getconn()
+    try:
+        with con.cursor() as cur:
+            yield cur
+            con.commit()
+    except:
+        con.rollback()
+        raise
+    finally:
+        dbpool.putconn(con)
+
+
+cur = db_cursor()
 
 
 class ConsumptionNN:
@@ -116,7 +136,7 @@ class ConsumptionNN:
             df['sf_ld'] = 0
             for id in np.arange(len(soft_ld)):
                 df.loc[(df['date_time'] >= pd.to_datetime(soft_ld.iloc[id]['date_start'])) & (
-                        df['date_time'] <= pd.to_datetime(soft_ld.iloc[id]['date_end'])),'sf_ld'] = 1
+                        df['date_time'] <= pd.to_datetime(soft_ld.iloc[id]['date_end'])), 'sf_ld'] = 1
         else:
             df['sf_ld'] = 0
 
@@ -163,13 +183,13 @@ class ConsumptionNN:
         holiday_indexes = df_calendar[df_calendar['working_day'] == 0].index.tolist()
         for index, row in df_calendar[df_calendar['working_day'] == 0].iterrows():
             if ((index - 2) in holiday_indexes) and ((index - 3) in holiday_indexes):
-                day_before.append(index-4)
+                day_before.append(index - 4)
             elif (index - 2) in holiday_indexes:
-                day_before.append(index-3)
-            elif (index + 1 not in  holiday_indexes) and (index - 1 not in holiday_indexes):
+                day_before.append(index - 3)
+            elif (index + 1 not in holiday_indexes) and (index - 1 not in holiday_indexes):
                 day_before.append(index - 1)
             elif (index - 1) not in holiday_indexes:
-                friday.append(index-1)
+                friday.append(index - 1)
         for index, row in df_calendar[df_calendar['working_day'] == 1].iterrows():
             if ((index - 1) in holiday_indexes) and ((index + 1) in holiday_indexes):
                 day_in_the_middle.append(index)
@@ -217,7 +237,8 @@ class ConsumptionNN:
             df = pd.concat([backtest, forecast])
             df = reduce_memory_usage(df)
             if self.local_time:
-                df = dublicated_hour(df=df, subset=['mfc_datetime_local'], date_time_column='mfc_datetime_local').rename(
+                df = dublicated_hour(df=df, subset=['mfc_datetime_local'],
+                                     date_time_column='mfc_datetime_local').rename(
                     columns={'mfc_datetime_local': 'date_time',
                              'mfc_val_3': 'prediction'}
                 )
@@ -227,8 +248,8 @@ class ConsumptionNN:
         else:
             print(f"\n \n \n No backtest had been done yet for {self.country_code}, sin inclination values will be "
                   f"inserted as a proxy!!!!!! \n \n \n")
-            return(f"\n \n \n No backtest had been done yet for {self.country_code}, sin inclination values will be "
-                  f"inserted as a proxy!!!!!! \n \n \n")
+            return (f"\n \n \n No backtest had been done yet for {self.country_code}, sin inclination values will be "
+                    f"inserted as a proxy!!!!!! \n \n \n")
 
     def collect_data_for_2d_forecast(self):
 
@@ -291,7 +312,7 @@ class ConsumptionNN:
         else:
             rooftop = self.get_a_solar_rooftop_forecast()
             if isinstance(rooftop, pd.DataFrame):
-                df = pd.merge(df, rooftop, on='date_time', how='outer').dropna(thresh=df.shape[1]-1)
+                df = pd.merge(df, rooftop, on='date_time', how='outer').dropna(thresh=df.shape[1] - 1)
                 df['prediction'] = df['prediction'].fillna(0)
             elif isinstance(rooftop, str):
                 df['prediction'] = df['sin'].fillna(0)
@@ -324,7 +345,6 @@ class ConsumptionNN:
         except psycopg2.ProgrammingError:
             df = resolve_psycopg2_programming_error(df)
             insert_into_table(df, 'prime', ConsumptionForecast.TwoDaysAhead.raw_data)
-
 
     def collect_data_for_weekahead_forecast(self):
 
@@ -384,7 +404,7 @@ class ConsumptionNN:
         else:
             rooftop = self.get_a_solar_rooftop_forecast()
             if isinstance(rooftop, pd.DataFrame):
-                df = pd.merge(df, rooftop, on='date_time', how='outer').dropna(thresh=df.shape[1]-1)
+                df = pd.merge(df, rooftop, on='date_time', how='outer').dropna(thresh=df.shape[1] - 1)
                 df['prediction'] = df['prediction'].fillna(0)
             elif isinstance(rooftop, str):
                 df['prediction'] = df['sin'].fillna(0)
@@ -471,7 +491,7 @@ class ConsumptionNN:
         else:
             rooftop = self.get_a_solar_rooftop_forecast()
             if isinstance(rooftop, pd.DataFrame):
-                df = pd.merge(df, rooftop, on='date_time', how='outer').dropna(thresh=df.shape[1]-1)
+                df = pd.merge(df, rooftop, on='date_time', how='outer').dropna(thresh=df.shape[1] - 1)
                 df['prediction'] = df['prediction'].fillna(0)
             elif isinstance(rooftop, str):
                 df['prediction'] = df['sin'].fillna(0)
@@ -578,13 +598,15 @@ class ConsumptionNN:
         dh, dh0 = self.find_t_bound_adv()
         if two_days:
             df_weather, points = ThunderbirdUtils.Weather(country_code=self.country_code,
-                                                  local_time=self.local_time, weighted=True).weather_forecast()
+                                                          local_time=self.local_time, weighted=True).weather_forecast()
         elif weekahead:
             df_weather, points = ThunderbirdUtils.Weather(country_code=self.country_code,
-                                                  local_time=self.local_time, weighted=True).weather_interpolation()
+                                                          local_time=self.local_time,
+                                                          weighted=True).weather_interpolation()
         elif longterm:
             df_weather, points = ThunderbirdUtils.Weather(country_code=self.country_code,
-                                                  local_time=self.local_time, weighted=True).extract_weather_trend_data()
+                                                          local_time=self.local_time,
+                                                          weighted=True).extract_weather_trend_data()
         weights = []
         for point in points:
             cur.execute(f"SELECT consumption_weight FROM bi.weatherpointsref WHERE point_name = '{point}'")
@@ -617,7 +639,7 @@ if __name__ == '__main__':
     # countries = ['SK', 'RO', 'PL', 'HU', 'CZ']
     countries = ['PL']
     for country in countries:
-        #solarNN(country_code=country).gather_data_for_2d_forecast()
+        # solarNN(country_code=country).gather_data_for_2d_forecast()
         ConsumptionNN(country_code=country).collect_data_for_2d_forecast()
         print(f'Data for 2d forecast has been extracted for {country}')
     # ConsumptionNN().collect_data_for_weekahead_forecast()

@@ -22,20 +22,20 @@ MODEL_PATH = os.environ.get('MODEL_PATH')
 DB_PARAMS = ast.literal_eval(os.environ["DB_PARAMS"])
 con = psycopg2.connect(**DB_PARAMS)
 cur = con.cursor()
-dbpool = psyco_pool.ThreadedConnectionPool(**DB_PARAMS)
+dbpool = psyco_pool.ThreadedConnectionPool(1, 25, **DB_PARAMS)
 
 @contextmanager
 def db_cursor():
-    conn = dbpool.getconn()
+    con = dbpool.getconn()
     try:
-        with conn.cursor() as cur:
+        with con.cursor() as cur:
             yield cur
-            conn.commit()
+            con.commit()
     except:
-        conn.rollback()
+        con.rollback()
         raise
     finally:
-        dbpool.putconn(conn)
+        dbpool.putconn(con)
 
 class Thunder:
 

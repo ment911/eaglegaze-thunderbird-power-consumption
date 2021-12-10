@@ -11,9 +11,10 @@ from eaglegaze_common.thunderbird.nn_train_test import ThunderbirdTrain
 from eaglegaze_common.thunderbird.scale_the_data import ThunderbirdScale
 from eaglegaze_common.thunderbird.thunderattr import ConsumptionForecast
 from consumptionNN import ConsumptionNN
+import pathlib
 
 load_dotenv(find_dotenv())
-path_files = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+path_files = pathlib.Path(__file__).parent.resolve()
 os.environ['SCALER_PATH'] = f"{path_files}/scalers/"
 os.environ['MODEL_PATH']= f"{path_files}/models/"
 MODEL_PATH = os.environ.get('MODEL_PATH')

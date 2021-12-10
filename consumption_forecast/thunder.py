@@ -12,10 +12,10 @@ from eaglegaze_common.thunderbird.scale_the_data import ThunderbirdScale
 from eaglegaze_common.thunderbird.thunderattr import ConsumptionForecast
 from consumptionNN import ConsumptionNN
 
-
 load_dotenv(find_dotenv())
-os.environ['SCALER_PATH'] = os.path.dirname(os.path.abspath(__file__)) + '/scalers/'
-os.environ['MODEL_PATH'] = os.path.dirname(os.path.abspath(__file__)) + '/models/'
+path_files = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+os.environ['SCALER_PATH'] = f"{path_files}/scalers/"
+os.environ['MODEL_PATH']= f"{path_files}/models/"
 MODEL_PATH = os.environ.get('MODEL_PATH')
 DB_PARAMS = ast.literal_eval(os.environ["DB_PARAMS"])
 con = psycopg2.connect(**DB_PARAMS)

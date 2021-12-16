@@ -140,7 +140,8 @@ class Thunder:
         for country in self.countries:
             cur.execute(f"SELECT id FROM bi.countries t WHERE iso_сode = '{country}'")
             id = cur.fetchall()[0][0]
-            cur.execute(f"SELECT m_id FROM im.im_market WHERE m_commodity = 1 AND m_type = 1 AND m_sid1 = {id}")
+            cur.execute(f"SELECT m_id FROM im.im_market_country "
+                        f"WHERE m_commodity = {mfc_commodity_id} AND m_country = {id}")
             mfc_market_id = cur.fetchall()[0][0]
             cur.execute(f'SELECT * FROM im.im_markets_forecast_calc '
                         f'WHERE mfc_microservice_id = {self.mfc_microservice_id} '

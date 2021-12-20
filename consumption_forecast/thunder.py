@@ -6,6 +6,7 @@ import pandas as pd
 import psycopg2
 from dotenv import load_dotenv, find_dotenv
 from eaglegaze_common.common_utils import insert_into_table
+from eaglegaze_common.common_utils import start_end_microservice_time
 from eaglegaze_common.thunderbird.get_data_and_predict import ThunderbirdPredict
 from eaglegaze_common.thunderbird.nn_train_test import ThunderbirdTrain
 from eaglegaze_common.thunderbird.scale_the_data import ThunderbirdScale
@@ -134,6 +135,7 @@ class Thunder:
         else:
             return 'Forecast has been done'
 
+    @start_end_microservice_time(4)
     def run(self):
         if self.countries is None:
             self.countries = ConsumptionForecast.all_countries.value

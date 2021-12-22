@@ -236,7 +236,7 @@ class ConsumptionNN:
 
         df_consumption = self.extract_consumption_data()
         df_weather = ThunderbirdUtils.Weather(country_code=self.country_code,
-                                              local_time=self.local_time).weather_forecast()
+                                              local_time=self.local_time, point=self.capital).weather_forecast()
         df_calendar = self.full_calendar()
         df_sun = ThunderbirdUtils(country_code=self.country_code).extract_set_rise_data(point_name=self.capital)
         sun_inc = ThunderbirdUtils(country_code=self.country_code).sun_inclination(point_name=self.capital)
@@ -332,7 +332,7 @@ class ConsumptionNN:
 
         df_consumption = self.extract_consumption_data()
         df_weather = ThunderbirdUtils.Weather(country_code=self.country_code,
-                                              local_time=self.local_time).weather_interpolation()
+                                              local_time=self.local_time, point=self.capital).weather_interpolation()
         df_calendar = self.full_calendar()
         df_sun = ThunderbirdUtils(country_code=self.country_code).extract_set_rise_data(point_name=self.capital)
         sun_inc = ThunderbirdUtils(country_code=self.country_code).sun_inclination(point_name=self.capital)
@@ -419,7 +419,7 @@ class ConsumptionNN:
 
         df_consumption = self.extract_consumption_data()
         df_weather = ThunderbirdUtils.Weather(country_code=self.country_code,
-                                              local_time=self.local_time).extract_weather_trend_data(till=2030)
+                                              local_time=self.local_time, point=self.capital).extract_weather_trend_data(till=2030)
         df_calendar = self.full_calendar()
         df_sun = ThunderbirdUtils(country_code=self.country_code).extract_set_rise_data(point_name=self.capital)
         sun_inc = ThunderbirdUtils(country_code=self.country_code).sun_inclination(point_name=self.capital)

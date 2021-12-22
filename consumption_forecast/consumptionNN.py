@@ -4,6 +4,7 @@ import os
 
 from eaglegaze_common.thunderbird.thunderattr import ConsumptionForecast
 from eaglegaze_common.thunderbird.thunder_utils import ThunderbirdUtils
+from eaglegaze_common.entsoe_configs import CAPITALS
 import numpy as np
 import pandas as pd
 import psycopg2
@@ -40,6 +41,7 @@ class ConsumptionNN:
     def __init__(self, country_code, local_time=True):
         self.country_code = country_code
         self.local_time = local_time
+        self.capaital = CAPITALS[self.country_code]
 
     def extract_consumption_data(self):
         cur.execute(f"SELECT date_time, value FROM bi.{ConsumptionNN.balance_table}"
@@ -236,8 +238,8 @@ class ConsumptionNN:
         df_weather = ThunderbirdUtils.Weather(country_code=self.country_code,
                                               local_time=self.local_time).weather_forecast()
         df_calendar = self.full_calendar()
-        df_sun = ThunderbirdUtils(country_code=self.country_code).extract_set_rise_data()
-        sun_inc = ThunderbirdUtils(country_code=self.country_code).sun_inclination()
+        df_sun = ThunderbirdUtils(country_code=self.country_code).extract_set_rise_data(point_name=self.capital)
+        sun_inc = ThunderbirdUtils(country_code=self.country_code).sun_inclination(point_name=self.capital)
 
         ####
         df_weather = df_weather[df_weather['date_time'] > df_consumption['date_time'].min()]
@@ -332,8 +334,8 @@ class ConsumptionNN:
         df_weather = ThunderbirdUtils.Weather(country_code=self.country_code,
                                               local_time=self.local_time).weather_interpolation()
         df_calendar = self.full_calendar()
-        df_sun = ThunderbirdUtils(country_code=self.country_code).extract_set_rise_data()
-        sun_inc = ThunderbirdUtils(country_code=self.country_code).sun_inclination()
+        df_sun = ThunderbirdUtils(country_code=self.country_code).extract_set_rise_data(point_name=self.capital)
+        sun_inc = ThunderbirdUtils(country_code=self.country_code).sun_inclination(point_name=self.capital)
 
         ####
         df_weather = df_weather[df_weather['date_time'] > df_consumption['date_time'].min()]
@@ -419,8 +421,8 @@ class ConsumptionNN:
         df_weather = ThunderbirdUtils.Weather(country_code=self.country_code,
                                               local_time=self.local_time).extract_weather_trend_data(till=2030)
         df_calendar = self.full_calendar()
-        df_sun = ThunderbirdUtils(country_code=self.country_code).extract_set_rise_data()
-        sun_inc = ThunderbirdUtils(country_code=self.country_code).sun_inclination()
+        df_sun = ThunderbirdUtils(country_code=self.country_code).extract_set_rise_data(point_name=self.capital)
+        sun_inc = ThunderbirdUtils(country_code=self.country_code).sun_inclination(point_name=self.capital)
 
         # Adding weather
         df_weather = df_weather[df_weather['date_time'] > df_consumption['date_time'].min()]

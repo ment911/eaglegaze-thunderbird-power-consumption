@@ -41,7 +41,7 @@ class ConsumptionNN:
     def __init__(self, country_code, local_time=True):
         self.country_code = country_code
         self.local_time = local_time
-        self.capaital = CAPITALS[self.country_code]
+        self.capital = CAPITALS[self.country_code]
 
     def extract_consumption_data(self):
         cur.execute(f"SELECT date_time, value FROM bi.{ConsumptionNN.balance_table}"

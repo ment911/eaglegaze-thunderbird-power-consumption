@@ -140,10 +140,10 @@ class Thunder:
         if self.countries is None:
             self.countries = ConsumptionForecast.all_countries.value
         for country in self.countries:
-            cur.execute(f"SELECT id FROM bi.countries t WHERE t.iso_сode = '{country}'")
+            cur.execute(f"SELECT id FROM bi.countries t WHERE t.iso_code = '{country}'")
             id = cur.fetchall()[0][0]
             cur.execute(f"SELECT m_id FROM im.im_market_country "
-                        f"WHERE m_commodity = {mfc_commodity_id} AND m_country = {id}")
+                        f"WHERE m_commodity = 1 AND m_country = {id}")
             mfc_market_id = cur.fetchall()[0][0]
             cur.execute(f'SELECT * FROM im.im_markets_forecast_calc '
                         f'WHERE mfc_microservice_id = {self.mfc_microservice_id} '

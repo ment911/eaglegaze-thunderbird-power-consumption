@@ -187,7 +187,7 @@ class ConsumptionNN:
 
     def get_a_solar_rooftop_forecast(self, scenario=1):
         # Get market id
-        cur.execute(f"SELECT m_id FROM im.im_market LEFT JOIN bi.countries ON m_sid1 = id  WHERE iso_сode = '"
+        cur.execute(f"SELECT m_id FROM im.im_market_country LEFT JOIN bi.countries ON m_country = id WHERE iso_code = '"
                     f"{self.country_code}';")
         m_id = cur.fetchall()[0][0]
         # Get backtest

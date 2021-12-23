@@ -4,7 +4,8 @@ import os
 
 import pandas as pd
 import psycopg2
-from dotenv import load_dotenv, find_dotenv
+from decouple import config as envs
+from sqlalchemy import create_engine
 from eaglegaze_common.common_utils import insert_into_table
 from eaglegaze_common.common_utils import start_end_microservice_time
 from eaglegaze_common.thunderbird.get_data_and_predict import ThunderbirdPredict
@@ -14,13 +15,12 @@ from eaglegaze_common.thunderbird.thunderattr import ConsumptionForecast
 from consumptionNN import ConsumptionNN
 import pathlib
 
-load_dotenv(find_dotenv())
 path_files = pathlib.Path(__file__).parent.resolve()
 os.environ['SCALER_PATH'] = f"{path_files}/scalers/"
 os.environ['MODEL_PATH']= f"{path_files}/models/"
 MODEL_PATH = os.environ.get('MODEL_PATH')
-DB_PARAMS = ast.literal_eval(os.environ["DB_PARAMS"])
-con = psycopg2.connect(**DB_PARAMS)
+engine = create_engine(envs('ALCHEMY_CONNECTION', cast=str))
+con = engine.raw_connection()
 cur = con.cursor()
 
 

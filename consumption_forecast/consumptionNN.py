@@ -92,7 +92,8 @@ class ConsumptionNN:
     def lockdown_data(self, df):
         LockdownEU()
 
-        cur.execute(f"SELECT сountry_name FROM bi.countries WHERE iso_сode = '{self.country_code}';")
+        cur.execute(f"SELECT countries.country_name FROM bi.countries "
+                    f"WHERE countries.iso_code = '{self.country_code}';")
         c_name = cur.fetchall()[0][0]
 
         if self.country_code == 'CZ':
@@ -190,29 +191,42 @@ class ConsumptionNN:
         cur.execute(f"SELECT m_id FROM im.im_market_country LEFT JOIN bi.countries ON m_country = id WHERE iso_code = '"
                     f"{self.country_code}';")
         m_id = cur.fetchall()[0][0]
+        # get max iteration
+        cur.execute(f"SELECT MAX(mfc_iteration) FROM im.im_markets_forecast_calc "
+                    f"WHERE mfc_scenario = 4 AND mfc_market_id = {m_id} "
+                    f"AND mfc_commodity_id = 1 AND mfc_microservice_id = 30;")
+        max_iteration_backtest = cur.fetchall()[0][0]
         # Get backtest
         if self.local_time:
             cur.execute(f"SELECT mfc_datetime_local, mfc_val_3 FROM im.im_markets_forecast_calc "
                         f"WHERE mfc_scenario = 4 AND mfc_market_id = {m_id} "
-                        f"AND mfc_commodity_id = 1 AND mfc_microservice_id = 30")
+                            f"AND mfc_commodity_id = 1 AND mfc_microservice_id = 30 "
+                        f"AND mfc_iteration = {max_iteration_backtest}")
             backtest = pd.DataFrame(cur.fetchall())
         else:
             cur.execute(f"SELECT mfc_datetime_utc, mfc_val_3 FROM im.im_markets_forecast_calc "
                         f"WHERE mfc_scenario = 4 AND mfc_market_id = {m_id} "
-                        f"AND mfc_commodity_id = 1 AND mfc_microservice_id = 30")
+                        f"AND mfc_commodity_id = 1 AND mfc_microservice_id = 30 "
+                        f"AND mfc_iteration = {max_iteration_backtest}")
             backtest = pd.DataFrame(cur.fetchall())
         if len(backtest):
             backtest.columns = [d[0] for d in cur.description]
+            cur.execute(f"SELECT MAX(mfc_iteration) FROM im.im_markets_forecast_calc "
+                        f"WHERE mfc_scenario = {scenario} AND mfc_market_id = {m_id} "
+                        f"AND mfc_commodity_id = 1 AND mfc_microservice_id = 30;")
+            max_iteration_forecast = cur.fetchall()[0][0]
             # Get forecast
             if self.local_time:
                 cur.execute(f"SELECT mfc_datetime_local, mfc_val_3 FROM im.im_markets_forecast_calc "
                             f"WHERE mfc_scenario = {scenario} AND mfc_market_id = {m_id} "
-                            f"AND mfc_commodity_id = 1 AND mfc_microservice_id = 30")
+                            f"AND mfc_commodity_id = 1 AND mfc_microservice_id = 30 "
+                            f"AND mfc_iteration = {max_iteration_forecast} ")
                 forecast = pd.DataFrame(cur.fetchall())
             else:
                 cur.execute(f"SELECT mfc_datetime_utc, mfc_val_3 FROM im.im_markets_forecast_calc "
                             f"WHERE mfc_scenario = {scenario} AND mfc_market_id = {m_id} "
-                            f"AND mfc_commodity_id = 1 AND mfc_microservice_id = 30")
+                            f"AND mfc_commodity_id = 1 AND mfc_microservice_id = 30 "
+                            f"AND mfc_iteration = {max_iteration_forecast}")
                 forecast = pd.DataFrame(cur.fetchall())
             forecast.columns = [d[0] for d in cur.description]
             forecast = forecast[forecast['mfc_datetime_local'] > backtest['mfc_datetime_local'].max()]

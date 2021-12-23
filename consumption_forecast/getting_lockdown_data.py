@@ -5,13 +5,15 @@ import urllib.error
 import psycopg2
 import pandas as pd
 import numpy as np
-from dotenv import load_dotenv, find_dotenv
 from eaglegaze_common.common_utils import insert_into_table
 import datetime
+from decouple import config as envs
+from sqlalchemy import create_engine
 
-load_dotenv(find_dotenv())
-DB_PARAMS = ast.literal_eval(os.environ["DB_PARAMS"])
-con = psycopg2.connect(**DB_PARAMS)
+engine = create_engine(envs('ALCHEMY_CONNECTION', cast=str))
+con = engine.raw_connection()
+cur = con.cursor()
+
 
 def LockdownEU():
     cur = con.cursor()

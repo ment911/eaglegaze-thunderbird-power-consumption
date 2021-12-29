@@ -2,8 +2,8 @@ version: "3.9"
 
 services:
   platform:
-    image: wind_forecast
-    container_name: wind_forecast
+    image: consumption_forecast
+    container_name: consumption_forecast
     network_mode: ${NETWORK_MODE}
     env_file:
       - .env

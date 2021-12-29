@@ -7,12 +7,19 @@ name : eaglegaze-thunderbird-power-consumption-ci
 
 trigger:
 - main
+- develop
 
 resources:
 - repo: self
 
 variables:
-  tag: '$(Build.BuildId)'
+  tagbuild: '$(Build.BuildId)'
+  ${{ if eq(variables['Build.SourceBranchName'], 'main') }}:
+    tagadd: main
+    GENERAL_BRANCH: main
+  ${{ else }}:
+    tagadd: dev
+    GENERAL_BRANCH: develop
   ImageName: 'eaglegaze-thunderbird-power-consumption'
 
 
@@ -25,6 +32,13 @@ stages:
     pool:
       vmImage: ubuntu-latest
     steps:
+    - task: CmdLine@2
+      displayName: Check variables
+      inputs:
+        script: |
+          echo $(tagbuild)
+          echo $(tagadd)
+          echo $(GENERAL_BRANCH)
     - task: Docker@2
       displayName: Build an image
       inputs:
@@ -32,8 +46,9 @@ stages:
         repository: $(ImageName)
         dockerfile: '$(Build.SourcesDirectory)/Dockerfile'
         tags: |
-          $(Build.BuildId)
-          latest    
+          $(tagbuild)
+          $(tagadd)
+        arguments: '--build-arg PATH_TO_SCRIPT=$(PATH_TO_SCRIPT) --build-arg MAIN_DIR=$(MAIN_DIR) --build-arg GIT_SSL_NO_VERIFY=$(GIT_SSL_NO_VERIFY) --build-arg GENERAL_BRANCH=$(GENERAL_BRANCH) --build-arg GIT_TOKEN=$(GIT_TOKEN) --build-arg GIT_HOST=$(GIT_HOST) --build-arg GIT_URN=$(GIT_URN) --build-arg LOG_PATH=$(LOG_PATH) --build-arg LOG_FILE=$(LOG_FILE)'
     - task: ECRPushImage@1
       inputs:
         awsCredentials: 'AWS-ForecastDemand-dev-terraform'
@@ -42,7 +57,7 @@ stages:
         sourceImageName: '$(ImageName)'
         sourceImageTag: $(Build.BuildId)
         repositoryName: '$(ImageName)'
-        pushTag: '$(Build.BuildId)'
+        pushTag: $(tagbuild)
     - task: ECRPushImage@1
       inputs:
         awsCredentials: 'AWS-ForecastDemand-dev-terraform'
@@ -51,4 +66,4 @@ stages:
         sourceImageName: '$(ImageName)'
         sourceImageTag: $(Build.BuildId)
         repositoryName: '$(ImageName)'
-        pushTag: 'latest'
+        pushTag: $(tagadd)

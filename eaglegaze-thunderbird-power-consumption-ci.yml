@@ -20,7 +20,7 @@ variables:
   ${{ else }}:
     tagadd: dev
     GENERAL_BRANCH: develop
-  ImageName: 'eaglegaze-thunderbird-power-consumption'
+  ImageName: 'dtrading-eaglegaze-thunderbird-power-consumption'
 
 
 stages:

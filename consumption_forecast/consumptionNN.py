@@ -347,6 +347,7 @@ class ConsumptionNN:
         df_consumption = self.extract_consumption_data()
         df_weather = ThunderbirdUtils.Weather(country_code=self.country_code,
                                               local_time=self.local_time, point=self.capital).weather_interpolation()
+        df_weather = df_weather.drop(columns=['pressure', 'wind_speed', 'wind_deg', 'rain', 'snow', 'clouds'])
         df_calendar = self.full_calendar()
         df_sun = ThunderbirdUtils(country_code=self.country_code).extract_set_rise_data(point_name=self.capital)
         sun_inc = ThunderbirdUtils(country_code=self.country_code).sun_inclination(point_name=self.capital)

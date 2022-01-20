@@ -105,7 +105,7 @@ class Thunder:
                                  y=ConsumptionForecast.y.value,
                                  country_code=country,
                                  backtest=self.backtest).im_predict(mfc_microservice_id=self.mfc_microservice_id)
-            insert_into_table(td_df, 'im', 'im_markets_forecast_calc', primary_key=False,
+            insert_into_table(long_df, 'im', 'im_markets_forecast_calc', primary_key=False,
                     constraint='unique_constraint')
             print(f'Longterm consumption() output prediction for {country} has been done')
         if weekahead:

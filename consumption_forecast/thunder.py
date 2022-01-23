@@ -14,6 +14,7 @@ from eaglegaze_common.thunderbird.scale_the_data import ThunderbirdScale
 from eaglegaze_common.thunderbird.thunderattr import ConsumptionForecast
 from consumptionNN import ConsumptionNN
 import pathlib
+from getting_lockdown_data import LockdownEU
 
 path_files = pathlib.Path(__file__).parent.resolve()
 os.environ['SCALER_PATH'] = f"{path_files}/scalers/"
@@ -105,7 +106,7 @@ class Thunder:
                                  y=ConsumptionForecast.y.value,
                                  country_code=country,
                                  backtest=self.backtest).im_predict(mfc_microservice_id=self.mfc_microservice_id)
-            insert_into_table(td_df, 'im', 'im_markets_forecast_calc', primary_key=False,
+            insert_into_table(long_df, 'im', 'im_markets_forecast_calc', primary_key=False,
                     constraint='unique_constraint')
             print(f'Longterm consumption() output prediction for {country} has been done')
         if weekahead:
@@ -138,6 +139,7 @@ class Thunder:
 
     @start_end_microservice_time(4)
     def run(self):
+        LockdownEU()
         if self.countries is None:
             self.countries = ConsumptionForecast.all_countries.value
         for country in self.countries:

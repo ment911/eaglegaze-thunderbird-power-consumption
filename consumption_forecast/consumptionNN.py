@@ -13,7 +13,6 @@ from decouple import config as envs
 from sqlalchemy import create_engine
 from eaglegaze_common.common_utils import insert_into_table, dublicated_hour, reduce_memory_usage, \
     resolve_psycopg2_programming_error
-from getting_lockdown_data import LockdownEU
 
 warnings.filterwarnings("ignore")
 engine = create_engine(envs('ALCHEMY_CONNECTION', cast=str))
@@ -90,7 +89,6 @@ class ConsumptionNN:
         return df
 
     def lockdown_data(self, df):
-        LockdownEU()
 
         cur.execute(f"SELECT countries.country_name FROM bi.countries "
                     f"WHERE countries.iso_code = '{self.country_code}';")
@@ -196,55 +194,61 @@ class ConsumptionNN:
                     f"WHERE mfc_scenario = 4 AND mfc_market_id = {m_id} "
                     f"AND mfc_commodity_id = 1 AND mfc_microservice_id = 30;")
         max_iteration_backtest = cur.fetchall()[0][0]
-        # Get backtest
-        if self.local_time:
-            cur.execute(f"SELECT mfc_datetime_local, mfc_val_3 FROM im.im_markets_forecast_calc "
-                        f"WHERE mfc_scenario = 4 AND mfc_market_id = {m_id} "
-                            f"AND mfc_commodity_id = 1 AND mfc_microservice_id = 30 "
-                        f"AND mfc_iteration = {max_iteration_backtest}")
-            backtest = pd.DataFrame(cur.fetchall())
-        else:
-            cur.execute(f"SELECT mfc_datetime_utc, mfc_val_3 FROM im.im_markets_forecast_calc "
-                        f"WHERE mfc_scenario = 4 AND mfc_market_id = {m_id} "
-                        f"AND mfc_commodity_id = 1 AND mfc_microservice_id = 30 "
-                        f"AND mfc_iteration = {max_iteration_backtest}")
-            backtest = pd.DataFrame(cur.fetchall())
-        if len(backtest):
-            backtest.columns = [d[0] for d in cur.description]
-            cur.execute(f"SELECT MAX(mfc_iteration) FROM im.im_markets_forecast_calc "
-                        f"WHERE mfc_scenario = {scenario} AND mfc_market_id = {m_id} "
-                        f"AND mfc_commodity_id = 1 AND mfc_microservice_id = 30;")
-            max_iteration_forecast = cur.fetchall()[0][0]
-            # Get forecast
+        if max_iteration_backtest is not None:
+            # Get backtest
             if self.local_time:
                 cur.execute(f"SELECT mfc_datetime_local, mfc_val_3 FROM im.im_markets_forecast_calc "
-                            f"WHERE mfc_scenario = {scenario} AND mfc_market_id = {m_id} "
-                            f"AND mfc_commodity_id = 1 AND mfc_microservice_id = 30 "
-                            f"AND mfc_iteration = {max_iteration_forecast} ")
-                forecast = pd.DataFrame(cur.fetchall())
+                            f"WHERE mfc_scenario = 4 AND mfc_market_id = {m_id} "
+                                f"AND mfc_commodity_id = 1 AND mfc_microservice_id = 30 "
+                            f"AND mfc_iteration = {max_iteration_backtest}")
+                backtest = pd.DataFrame(cur.fetchall())
             else:
                 cur.execute(f"SELECT mfc_datetime_utc, mfc_val_3 FROM im.im_markets_forecast_calc "
-                            f"WHERE mfc_scenario = {scenario} AND mfc_market_id = {m_id} "
+                            f"WHERE mfc_scenario = 4 AND mfc_market_id = {m_id} "
                             f"AND mfc_commodity_id = 1 AND mfc_microservice_id = 30 "
-                            f"AND mfc_iteration = {max_iteration_forecast}")
-                forecast = pd.DataFrame(cur.fetchall())
-            forecast.columns = [d[0] for d in cur.description]
-            forecast = forecast[forecast['mfc_datetime_local'] > backtest['mfc_datetime_local'].max()]
-            df = pd.concat([backtest, forecast])
-            df = reduce_memory_usage(df)
-            if self.local_time:
-                df = dublicated_hour(df=df, subset=['mfc_datetime_local'], date_time_column='mfc_datetime_local').rename(
-                    columns={'mfc_datetime_local': 'date_time',
-                             'mfc_val_3': 'prediction'}
-                )
+                            f"AND mfc_iteration = {max_iteration_backtest}")
+                backtest = pd.DataFrame(cur.fetchall())
+            if len(backtest):
+                backtest.columns = [d[0] for d in cur.description]
+                cur.execute(f"SELECT MAX(mfc_iteration) FROM im.im_markets_forecast_calc "
+                            f"WHERE mfc_scenario = {scenario} AND mfc_market_id = {m_id} "
+                            f"AND mfc_commodity_id = 1 AND mfc_microservice_id = 30;")
+                max_iteration_forecast = cur.fetchall()[0][0]
+                # Get forecast
+                if self.local_time:
+                    cur.execute(f"SELECT mfc_datetime_local, mfc_val_3 FROM im.im_markets_forecast_calc "
+                                f"WHERE mfc_scenario = {scenario} AND mfc_market_id = {m_id} "
+                                f"AND mfc_commodity_id = 1 AND mfc_microservice_id = 30 "
+                                f"AND mfc_iteration = {max_iteration_forecast} ")
+                    forecast = pd.DataFrame(cur.fetchall())
+                else:
+                    cur.execute(f"SELECT mfc_datetime_utc, mfc_val_3 FROM im.im_markets_forecast_calc "
+                                f"WHERE mfc_scenario = {scenario} AND mfc_market_id = {m_id} "
+                                f"AND mfc_commodity_id = 1 AND mfc_microservice_id = 30 "
+                                f"AND mfc_iteration = {max_iteration_forecast}")
+                    forecast = pd.DataFrame(cur.fetchall())
+                forecast.columns = [d[0] for d in cur.description]
+                forecast = forecast[forecast['mfc_datetime_local'] > backtest['mfc_datetime_local'].max()]
+                df = pd.concat([backtest, forecast])
+                df = reduce_memory_usage(df)
+                if self.local_time:
+                    df = dublicated_hour(df=df, subset=['mfc_datetime_local'], date_time_column='mfc_datetime_local').rename(
+                        columns={'mfc_datetime_local': 'date_time',
+                                'mfc_val_3': 'prediction'}
+                    )
+                else:
+                    df = df.rename(columns={'mfc_datetime_utc': 'date_time', 'mfc_val_3': 'prediction'})
+                return df
             else:
-                df = df.rename(columns={'mfc_datetime_utc': 'date_time', 'mfc_val_3': 'prediction'})
-            return df
+                print(f"\n \n \n No backtest had been done yet for {self.country_code}, sin inclination values will be "
+                    f"inserted as a proxy!!!!!! \n \n \n")
+                return(f"\n \n \n No backtest had been done yet for {self.country_code}, sin inclination values will be "
+                    f"inserted as a proxy!!!!!! \n \n \n")
         else:
             print(f"\n \n \n No backtest had been done yet for {self.country_code}, sin inclination values will be "
-                  f"inserted as a proxy!!!!!! \n \n \n")
+                f"inserted as a proxy!!!!!! \n \n \n")
             return(f"\n \n \n No backtest had been done yet for {self.country_code}, sin inclination values will be "
-                  f"inserted as a proxy!!!!!! \n \n \n")
+                f"inserted as a proxy!!!!!! \n \n \n")
 
     def collect_data_for_2d_forecast(self):
 

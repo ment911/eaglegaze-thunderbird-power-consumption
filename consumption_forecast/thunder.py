@@ -14,6 +14,7 @@ from eaglegaze_common.thunderbird.scale_the_data import ThunderbirdScale
 from eaglegaze_common.thunderbird.thunderattr import ConsumptionForecast
 from consumptionNN import ConsumptionNN
 import pathlib
+from getting_lockdown_data import LockdownEU
 
 path_files = pathlib.Path(__file__).parent.resolve()
 os.environ['SCALER_PATH'] = f"{path_files}/scalers/"
@@ -138,6 +139,7 @@ class Thunder:
 
     @start_end_microservice_time(4)
     def run(self):
+        LockdownEU()
         if self.countries is None:
             self.countries = ConsumptionForecast.all_countries.value
         for country in self.countries:

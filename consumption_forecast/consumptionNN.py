@@ -13,7 +13,6 @@ from decouple import config as envs
 from sqlalchemy import create_engine
 from eaglegaze_common.common_utils import insert_into_table, dublicated_hour, reduce_memory_usage, \
     resolve_psycopg2_programming_error
-from getting_lockdown_data import LockdownEU
 
 warnings.filterwarnings("ignore")
 engine = create_engine(envs('ALCHEMY_CONNECTION', cast=str))
@@ -90,7 +89,6 @@ class ConsumptionNN:
         return df
 
     def lockdown_data(self, df):
-        LockdownEU()
 
         cur.execute(f"SELECT countries.country_name FROM bi.countries "
                     f"WHERE countries.iso_code = '{self.country_code}';")

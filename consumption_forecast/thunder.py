@@ -106,6 +106,7 @@ class Thunder:
                                  y=ConsumptionForecast.y.value,
                                  country_code=country,
                                  backtest=self.backtest).im_predict(mfc_microservice_id=self.mfc_microservice_id)
+            long_df['mfc_val_1'] = long_df['mfc_val_1'] * -1
             insert_into_table(long_df, 'im', 'im_markets_forecast_calc', primary_key=False,
                     constraint='unique_constraint')
             print(f'Longterm consumption() output prediction for {country} has been done')
@@ -117,6 +118,7 @@ class Thunder:
                                  y=ConsumptionForecast.y.value,
                                  country_code=country,
                                  backtest=self.backtest).im_predict(mfc_microservice_id=self.mfc_microservice_id)
+            week_df['mfc_val_1'] = week_df['mfc_val_1'] * -1
             insert_into_table(week_df, 'im', 'im_markets_forecast_calc', primary_key=False,
                               constraint='unique_constraint')
             print(f'WA consumption() output prediction for {country} has been done')
@@ -128,6 +130,7 @@ class Thunder:
                                  y=ConsumptionForecast.y.value,
                                  country_code=country,
                                  backtest=self.backtest).im_predict(mfc_microservice_id=self.mfc_microservice_id)
+            td_df['mfc_val_1'] = td_df['mfc_val_1'] * -1
             insert_into_table(td_df, 'im', 'im_markets_forecast_calc', primary_key=False,
                               constraint='unique_constraint')
             print(f'2DA consumption() output prediction for {country} has been done')

@@ -26,6 +26,8 @@ variables:
 stages:
 - stage: Build
   displayName: Build Docker image
+  variables:
+  - group: eaglegaze_docker
   jobs:
   - job: Build
     displayName: Build

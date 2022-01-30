@@ -106,8 +106,13 @@ class ConsumptionNN:
         if len(strict_ld) > 0:
             df['st_ld'] = 0
             for id in np.arange(len(strict_ld)):
-                df.loc[(df['date_time'] >= pd.to_datetime(strict_ld.iloc[id]['date_start'])) & (
-                        df['date_time'] <= pd.to_datetime(strict_ld.iloc[id]['date_end'])), 'st_ld'] = 1
+                if strict_ld.iloc[id]['date_end'] is not None:
+                    df.loc[(df['date_time'] >= pd.to_datetime(strict_ld.iloc[id]['date_start'])) & (
+                            df['date_time'] <= pd.to_datetime(strict_ld.iloc[id]['date_end'])), 'st_ld'] = 1
+                else:
+                    df.loc[(df['date_time'] >= pd.to_datetime(strict_ld.iloc[id]['date_start'])) & (
+                            df['date_time'] <= pd.to_datetime(
+                        datetime.datetime.now() + datetime.timedelta(days=7))), 'st_ld'] = 1
         else:
             df['st_ld'] = 0
 

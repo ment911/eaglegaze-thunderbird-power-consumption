@@ -43,6 +43,7 @@ class Thunder:
     def _get_fact_data(self, date_time_start, country):
         df = ConsumptionNN(country_code=country).extract_consumption_data()
         df = df[df['date_time'] >= date_time_start]
+        df['consumption'] = df['consumption'] * -1
         return df
 
     def _create_fact_scenario(self, country, date_time_start, frame):

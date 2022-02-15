@@ -56,6 +56,8 @@ class Thunder:
                                                                                                  'mfc_val_1']).rename(
             columns={'consumption': 'mfc_val_1'}
         )
+        df = df.drop_duplicates(subset=['mfc_iteration', 'mfc_scenario', 'mfc_datetime_utc',
+                                        'mfc_market_id', 'mfc_commodity_id', 'mfc_microservice_id'])
         if not check_fact_scenario(mfc_microservice_id=self.mfc_microservice_id, mfc_market_id=self.mfc_market_id):
             df['mfc_scenario'] = 4
             insert_into_table(df, 'im', 'im_markets_forecast_calc', primary_key=False,

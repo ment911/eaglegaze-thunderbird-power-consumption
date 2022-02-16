@@ -10,7 +10,7 @@ from sqlalchemy import create_engine
 # import eaglegaze_common.logger as log
 from eaglegaze_common.entsoe_configs import COUTRIES_SHIFTS
 from eaglegaze_common.common_utils import insert_into_table, get_time_shift, substract_time_shift, get_iteration, \
-    start_end_microservice_time_with_iteration
+    start_end_microservice_time_with_iteration, to_utc
 from eaglegaze_common.thunderbird.get_data_and_predict import ThunderbirdPredict
 from eaglegaze_common.thunderbird.nn_train_test import ThunderbirdTrain
 from eaglegaze_common.thunderbird.scale_the_data import ThunderbirdScale
@@ -49,9 +49,7 @@ class Thunder:
     def _create_fact_scenario(self, country, date_time_start, frame):
         df = self._get_fact_data(country=country, date_time_start=date_time_start)
         df['date_time'] = df['date_time'].apply(lambda x: x.replace(minute=0))
-        df['date_time'] = substract_time_shift(df['date_time'].tolist(),
-                                                      COUTRIES_SHIFTS[f'{country}'][1],
-                                                      COUTRIES_SHIFTS[f'{country}'][0])
+        df['date_time'] = to_utc(df['date_time'].tolist(), country_code=country)
         df = pd.merge(frame, df, left_on='mfc_datetime_utc', right_on='date_time').drop(columns=['date_time',
                                                                                                  'mfc_val_1']).rename(
             columns={'consumption': 'mfc_val_1'}

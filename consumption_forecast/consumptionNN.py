@@ -50,8 +50,11 @@ class ConsumptionNN:
         df_consumption['consumption'] = df_consumption['consumption'].astype(float)
         df_consumption['consumption'] = df_consumption['consumption'].replace(0, np.nan)
         df_consumption = ThunderbirdUtils().check_missing_values(frame=df_consumption, target_column='consumption')
-        df_consumption = ThunderbirdUtils().z_test(frame=df_consumption, max_possible_std=3.2,
-                                                   target_column='consumption')
+        try:
+            df_consumption = ThunderbirdUtils().z_test(frame=df_consumption, max_possible_std=3.5,
+                                                       target_column='consumption')
+        except KeyError:
+            pass
         return df_consumption
 
     def get_avg_consumption(self, df, working_day_column='working_day'):
@@ -646,7 +649,7 @@ if __name__ == '__main__':
     # ConsumptionNN().collect_data_for_longterm_forecast()
     # solar_prediction('HU').predict(solar_prediction('HU')._prepare_data(), 'value')
     # countries = ['SK', 'RO', 'PL', 'HU', 'CZ']
-    countries = ['PL']
+    countries = ['FI']
     for country in countries:
         #solarNN(country_code=country).gather_data_for_2d_forecast()
         ConsumptionNN(country_code=country).collect_data_for_2d_forecast()

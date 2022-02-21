@@ -20,6 +20,10 @@ services:
         GIT_URN: ${GIT_URN}
         LOG_PATH: ${LOG_PATH}
         LOG_FILE: ${LOG_FILE}
+        STORAGE_PATH: ${STORAGE_PATH}
+        STORAGE: ${STORAGE}
+    volumes:
+      - storage:${STORAGE}
     restart: on-failure
 #    deploy:
 #      resources:
@@ -28,6 +32,15 @@ services:
 #            - driver: nvidia
 #              count: 1
 #              capabilities: [gpu]
+
+volumes:
+  storage:
+    name: ${VOLUME_NAME}
+    driver: ${VOLUME_DRIVER}
+    driver_opts:
+      o: bind
+      type: none
+      device: /ecs${STORAGE}${VOLUME_DEVICE}
 
 networks:
   default:

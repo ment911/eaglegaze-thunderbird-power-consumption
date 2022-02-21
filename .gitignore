@@ -113,5 +113,4 @@ venv.bak/
 #oll docker stuff
 docker/projects
 scalers/
-spp_forecast/scalers/
 models/

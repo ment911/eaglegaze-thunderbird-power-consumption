@@ -50,7 +50,7 @@ stages:
         tags: |
           $(tagbuild)
           $(tagadd)
-        arguments: '--build-arg PATH_TO_SCRIPT=$(PATH_TO_SCRIPT) --build-arg MAIN_DIR=$(MAIN_DIR) --build-arg GIT_SSL_NO_VERIFY=$(GIT_SSL_NO_VERIFY) --build-arg GENERAL_BRANCH=$(GENERAL_BRANCH) --build-arg GIT_TOKEN=$(GIT_TOKEN) --build-arg GIT_HOST=$(GIT_HOST) --build-arg GIT_URN=$(GIT_URN) --build-arg LOG_PATH=$(LOG_PATH) --build-arg LOG_FILE=$(LOG_FILE)'
+        arguments: '--build-arg PATH_TO_SCRIPT=$(PATH_TO_SCRIPT) --build-arg VOLUME_DRIVER=$(VOLUME_DRIVER) --build-arg VOLUME_NAME=$(VOLUME_NAME) --build-arg VOLUME_DEVICE=$(VOLUME_DEVICE) --build-arg STORAGE=$(STORAGE) --build-arg STORAGE_PATH=$(STORAGE_PATH) --build-arg MAIN_DIR=$(MAIN_DIR) --build-arg GIT_SSL_NO_VERIFY=$(GIT_SSL_NO_VERIFY) --build-arg GENERAL_BRANCH=$(GENERAL_BRANCH) --build-arg GIT_TOKEN=$(GIT_TOKEN) --build-arg GIT_HOST=$(GIT_HOST) --build-arg GIT_URN=$(GIT_URN) --build-arg LOG_PATH=$(LOG_PATH) --build-arg LOG_FILE=$(LOG_FILE)'
     - task: ECRPushImage@1
       inputs:
         awsCredentials: 'AWS-ForecastDemand-dev-terraform'

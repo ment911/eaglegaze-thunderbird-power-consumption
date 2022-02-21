@@ -64,6 +64,10 @@ RUN cd eaglegaze-common && python3 setup.py install && cd .. && rm -rf eaglegaze
 #RUN echo pip installing eaglegaze-common...
 #RUN pip3 install ${GENERAL_BRANCH} -i https://${GIT_TOKEN}@${GIT_HOST}${GIT_URN}/eaglegaze-common
 
+ARG STORAGE_PATH
+ENV STORAGE_PATH=$STORAGE_PATH
+RUN mkdir -p $STORAGE_PATH && chmod -R 775 $STORAGE_PATH
+
 #RUN pip3 list
 #RUN pip3 -V
 

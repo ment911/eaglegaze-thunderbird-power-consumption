@@ -1,9 +1,9 @@
-import ast
+# import ast
 import datetime
 import os
 
 import pandas as pd
-import psycopg2
+# import psycopg2
 from decouple import config as envs
 from sqlalchemy import create_engine
 # from eaglegaze_common.common_attr import Attributes as at
@@ -17,13 +17,18 @@ from eaglegaze_common.thunderbird.scale_the_data import ThunderbirdScale
 from eaglegaze_common.thunderbird.thunderattr import ConsumptionForecast
 from eaglegaze_common.thunderbird.thunder_utils import ThunderbirdUtils, check_fact_scenario
 from consumptionNN import ConsumptionNN
-import pathlib
 from getting_lockdown_data import LockdownEU
+import pathlib
 
-path_files = pathlib.Path(__file__).parent.resolve()
+# path_files = pathlib.Path(__file__).parent.resolve()
+
+path_files = envs('STORAGE_PATH', cast=str)
+Path(path_files).mkdir(parents=True, exist_ok=True)
+
 os.environ['SCALER_PATH'] = f"{path_files}/scalers/"
 os.environ['MODEL_PATH']= f"{path_files}/models/"
 MODEL_PATH = os.environ.get('MODEL_PATH')
+
 engine = create_engine(envs('ALCHEMY_CONNECTION', cast=str))
 con = engine.raw_connection()
 cur = con.cursor()

@@ -18,7 +18,7 @@ from eaglegaze_common.thunderbird.thunderattr import ConsumptionForecast
 from eaglegaze_common.thunderbird.thunder_utils import ThunderbirdUtils, check_fact_scenario
 from consumptionNN import ConsumptionNN
 from getting_lockdown_data import LockdownEU
-import pathlib
+from pathlib import Path
 
 # path_files = pathlib.Path(__file__).parent.resolve()
 

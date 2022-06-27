@@ -319,17 +319,18 @@ class ConsumptionNN:
         df = df[~df['d_1'].isna()]
 
         """PUT THE MFC HERE"""
-        if self.country_code in ConsumptionForecast.no_solar_countries.value:
-            df['prediction'] = df['sin'].fillna(0)
-        else:
-            rooftop = self.get_a_solar_rooftop_forecast()
-            if isinstance(rooftop, pd.DataFrame):
-                df = pd.merge(df, rooftop, on='date_time', how='outer').dropna(thresh=df.shape[1]-1)
-                df['prediction'] = df['prediction'].fillna(0)
-            elif isinstance(rooftop, str):
-                df['prediction'] = df['sin'].fillna(0)
-        df.drop(columns=['sin', 'clouds'], inplace=True)
-        df.dropna(thresh=df.shape[1] - 1, inplace=True)
+        df['prediction'] = df['sin'].fillna(0)
+        # if self.country_code in ConsumptionForecast.no_solar_countries.value:
+        #     df['prediction'] = df['sin'].fillna(0)
+        # else:
+        #     rooftop = self.get_a_solar_rooftop_forecast()
+        #     if isinstance(rooftop, pd.DataFrame):
+        #         df = pd.merge(df, rooftop, on='date_time', how='outer').dropna(thresh=df.shape[1]-1)
+        #         df['prediction'] = df['prediction'].fillna(0)
+        #     elif isinstance(rooftop, str):
+        #         df['prediction'] = df['sin'].fillna(0)
+        # df.drop(columns=['sin', 'clouds'], inplace=True)
+        # df.dropna(thresh=df.shape[1] - 1, inplace=True)
 
         df = self.lockdown_data(df)
 
@@ -413,17 +414,18 @@ class ConsumptionNN:
         df['sin'] = df['sin'].fillna(0)
 
         """PUT THE MFC HERE"""
-        if self.country_code in ConsumptionForecast.no_solar_countries.value:
-            df['prediction'] = df['sin'].fillna(0)
-        else:
-            rooftop = self.get_a_solar_rooftop_forecast()
-            if isinstance(rooftop, pd.DataFrame):
-                df = pd.merge(df, rooftop, on='date_time', how='outer').dropna(thresh=df.shape[1]-1)
-                df['prediction'] = df['prediction'].fillna(0)
-            elif isinstance(rooftop, str):
-                df['prediction'] = df['sin'].fillna(0)
-        df.drop(columns=['sin'], inplace=True)
-        df.dropna(thresh=df.shape[1] - 1, inplace=True)
+        df['prediction'] = df['sin'].fillna(0)
+        # if self.country_code in ConsumptionForecast.no_solar_countries.value:
+        #     df['prediction'] = df['sin'].fillna(0)
+        # else:
+        #     rooftop = self.get_a_solar_rooftop_forecast()
+        #     if isinstance(rooftop, pd.DataFrame):
+        #         df = pd.merge(df, rooftop, on='date_time', how='outer').dropna(thresh=df.shape[1]-1)
+        #         df['prediction'] = df['prediction'].fillna(0)
+        #     elif isinstance(rooftop, str):
+        #         df['prediction'] = df['sin'].fillna(0)
+        # df.drop(columns=['sin'], inplace=True)
+        # df.dropna(thresh=df.shape[1] - 1, inplace=True)
 
         df.dropna(thresh=df.shape[1] - 1, inplace=True)
         df = self.lockdown_data(df)
@@ -500,17 +502,18 @@ class ConsumptionNN:
         df = df[~df['d_1'].isna()]
 
         """PUT THE MFC HERE"""
-        if self.country_code in ConsumptionForecast.no_solar_countries.value:
-            df['prediction'] = df['sin'].fillna(0)
-        else:
-            rooftop = self.get_a_solar_rooftop_forecast()
-            if isinstance(rooftop, pd.DataFrame):
-                df = pd.merge(df, rooftop, on='date_time', how='outer').dropna(thresh=df.shape[1]-1)
-                df['prediction'] = df['prediction'].fillna(0)
-            elif isinstance(rooftop, str):
-                df['prediction'] = df['sin'].fillna(0)
-        df.drop(columns=['sin', 'clouds'], inplace=True)
-        df.dropna(thresh=df.shape[1] - 1, inplace=True)
+        df['prediction'] = df['sin'].fillna(0)
+        # if self.country_code in ConsumptionForecast.no_solar_countries.value:
+        #     df['prediction'] = df['sin'].fillna(0)
+        # else:
+        #     rooftop = self.get_a_solar_rooftop_forecast()
+        #     if isinstance(rooftop, pd.DataFrame):
+        #         df = pd.merge(df, rooftop, on='date_time', how='outer').dropna(thresh=df.shape[1]-1)
+        #         df['prediction'] = df['prediction'].fillna(0)
+        #     elif isinstance(rooftop, str):
+        #         df['prediction'] = df['sin'].fillna(0)
+        # df.drop(columns=['sin', 'clouds'], inplace=True)
+        # df.dropna(thresh=df.shape[1] - 1, inplace=True)
 
         # Adding lockdaown data
         df = self.lockdown_data(df)

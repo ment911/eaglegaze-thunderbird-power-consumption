@@ -19,6 +19,7 @@ from eaglegaze_common.thunderbird.thunder_utils import ThunderbirdUtils, check_f
 from consumptionNN import ConsumptionNN
 from getting_lockdown_data import LockdownEU
 from pathlib import Path
+import pathlib
 
 # path_files = pathlib.Path(__file__).parent.resolve()
 

@@ -329,8 +329,8 @@ class ConsumptionNN:
         #         df['prediction'] = df['prediction'].fillna(0)
         #     elif isinstance(rooftop, str):
         #         df['prediction'] = df['sin'].fillna(0)
-        # df.drop(columns=['sin', 'clouds'], inplace=True)
-        # df.dropna(thresh=df.shape[1] - 1, inplace=True)
+        df.drop(columns=['sin', 'clouds'], inplace=True)
+        df.dropna(thresh=df.shape[1] - 1, inplace=True)
 
         df = self.lockdown_data(df)
 
@@ -424,8 +424,8 @@ class ConsumptionNN:
         #         df['prediction'] = df['prediction'].fillna(0)
         #     elif isinstance(rooftop, str):
         #         df['prediction'] = df['sin'].fillna(0)
-        # df.drop(columns=['sin'], inplace=True)
-        # df.dropna(thresh=df.shape[1] - 1, inplace=True)
+        df.drop(columns=['sin'], inplace=True)
+        df.dropna(thresh=df.shape[1] - 1, inplace=True)
 
         df.dropna(thresh=df.shape[1] - 1, inplace=True)
         df = self.lockdown_data(df)
@@ -512,8 +512,8 @@ class ConsumptionNN:
         #         df['prediction'] = df['prediction'].fillna(0)
         #     elif isinstance(rooftop, str):
         #         df['prediction'] = df['sin'].fillna(0)
-        # df.drop(columns=['sin', 'clouds'], inplace=True)
-        # df.dropna(thresh=df.shape[1] - 1, inplace=True)
+        df.drop(columns=['sin', 'clouds'], inplace=True)
+        df.dropna(thresh=df.shape[1] - 1, inplace=True)
 
         # Adding lockdaown data
         df = self.lockdown_data(df)
